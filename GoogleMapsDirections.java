@@ -5,7 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 public class GoogleMapsDirections {
-    private static final String API_KEY = "Google API";
+    private static final String API_KEY = "Google Key";
     private static final String BASE_URL = "https://routes.googleapis.com/directions/v2:computeRoutes";
 
     public static String getFastestRoute(String origin, String destination) throws Exception {
