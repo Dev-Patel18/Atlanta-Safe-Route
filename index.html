@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Atlanta Safe Route</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=GOOGLE KEYQgem8&v=weekly&callback=initMap" async defer></script>
+    <script>
+        let map;
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: {lat: 33.7490, lng: -84.3880}, // Atlanta
+                zoom: 12
+            });
+
+            document.getElementById('getRoute').addEventListener('click', function() {
+                var origin = document.getElementById('origin').value;
+                var destination = document.getElementById('destination').value;
+                var safetyLevel = document.getElementById('safetyLevel').value;
+
+                if (!origin || !destination) {
+                    alert('Please enter both origin and destination coordinates.');
+                    return;
+                }
+
+                console.log(`Fetching route from ${origin} to ${destination} with safety level ${safetyLevel}`);
+
+                fetch(`http://localhost:8080/api/directions?origin=${origin}&destination=${destination}&safetyLevel=${safetyLevel}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok ' + response.statusText);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log("API Response:", JSON.stringify(data, null, 2));  // Log the full response in a formatted way
+
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+
+                        if (!data.routes || !Array.isArray(data.routes) || data.routes.length === 0) {
+                            throw new Error('No routes found in the response');
+                        }
+
+                        const route = data.routes[0];
+                        const leg = route.segments[0];  // Access the first segment for route details
+
+                        const start_location = {
+                            lat: parseFloat(origin.split(",")[0]),
+                            lng: parseFloat(origin.split(",")[1])
+                        };
+
+                        const end_location = {
+                            lat: parseFloat(destination.split(",")[0]),
+                            lng: parseFloat(destination.split(",")[1])
+                        };
+
+                        const request = {
+                            origin: start_location,
+                            destination: end_location,
+                            travelMode: 'DRIVING'
+                        };
+
+                        const directionsService = new google.maps.DirectionsService();
+                        const directionsDisplay = new google.maps.DirectionsRenderer({
+                            map: map
+                        });
+
+                        directionsService.route(request, function(result, status) {
+                            if (status === 'OK') {
+                                directionsDisplay.setDirections(result);
+
+                                new google.maps.Marker({
+                                    position: start_location,
+                                    map: map,
+                                    title: 'Origin'
+                                });
+
+                                new google.maps.Marker({
+                                    position: end_location,
+                                    map: map,
+                                    title: 'Destination'
+                                });
+                            } else {
+                                console.error('Directions request failed due to ' + status);
+                                alert('Directions request failed. Please try again.');
+                            }
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Fetch error: ', error);
+                        alert('Failed to fetch route. Please check the console for details.');
+                    });
+            });
+        }
+    </script>
+</head>
+<body>
+<h1>Find the Fastest and Safest Route</h1>
+<div>
+    <input type="text" id="origin" placeholder="Enter origin (latitude,longitude)">
+    <input type="text" id="destination" placeholder="Enter destination (latitude,longitude)">
+    <select id="safetyLevel">
+        <option value="fastest">Fastest</option>
+        <option value="safe">Safe</option>
+        <option value="very_safe">Very Safe</option>
+    </select>
+    <button id="getRoute">Get Route</button>
+</div>
+<div id="map" style="height: 500px; width: 100%;"></div>
+</body>
+</html>
